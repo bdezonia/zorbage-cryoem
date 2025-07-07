@@ -1,4 +1,4 @@
-zorbage-nmr
+zorbage-cryoem
 
 This repository contains code for loading various cryo EM file formats into zorbage
 structures for further processing.
