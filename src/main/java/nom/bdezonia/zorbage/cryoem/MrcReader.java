@@ -152,35 +152,8 @@ public class MrcReader {
 			
 			switch (dataType) {
 		        
-				case 101: // Unsigned4Bit:
-		            
-					bytesPerElement = 0.5;
-		        
-					alg = (T) G.UINT4;
-					
-					byteTransformer = new Procedure3<Boolean, byte[], U>() {
-						@Override
-						public void call(Boolean evenPixel, byte[] data, U type) {
-							
-							int v;
-							
-							if (evenPixel) {
-								
-								v = data[0] & 0x0f;
-							}
-							else {
-								
-								v = (data[0] & 0xf0) >> 4;
-							}
-							
-							((SignedInt4Member) type).setV(v);
-						}
-					};
-					
-					break;
-		            
 				case 0: // Signed8Bit or Unsigned8Bit
-		
+					
 					bytesPerElement = 1;
 			        
 					if (signedBytes) {
@@ -232,24 +205,25 @@ public class MrcReader {
 		            
 					break;
 		            
-				case 6: // Unsigned16Bit
-		        
-					bytesPerElement = 2;
-			        
-					alg = (T) G.UINT16;
+	
+				case 2: // Float32Bit
+	
+					bytesPerElement = 4;
+					
+					alg = (T) G.FLT;
 		            
 					byteTransformer = new Procedure3<Boolean, byte[], U>() {
 						@Override
 						public void call(Boolean evenPixel, byte[] data, U type) {
 							
-							int v = decodeShort(data, 0, littleEndian) & 0xffff;
+							float v = decodeFloat(data, 0, littleEndian);
 							
-							((UnsignedInt16Member) type).setV(v);
+							((Float32Member) type).setV(v);
 						}
 					};
 		            
 					break;
-		            
+	
 				case 3: // Gaussian16Bit
 	
 					bytesPerElement = 4;
@@ -270,24 +244,6 @@ public class MrcReader {
 		            
 					break;
 		            
-				case 2: // Float32Bit
-	
-					bytesPerElement = 4;
-					
-					alg = (T) G.FLT;
-		            
-					byteTransformer = new Procedure3<Boolean, byte[], U>() {
-						@Override
-						public void call(Boolean evenPixel, byte[] data, U type) {
-							
-							float v = decodeFloat(data, 0, littleEndian);
-							
-							((Float32Member) type).setV(v);
-						}
-					};
-		            
-					break;
-		            
 				case 4: // ComplexFloat32Bit:
 		        
 					bytesPerElement = 8;
@@ -303,6 +259,24 @@ public class MrcReader {
 							
 							((ComplexFloat32Member) type).setR(v1);
 							((ComplexFloat32Member) type).setI(v2);
+						}
+					};
+		            
+					break;
+	
+				case 6: // Unsigned16Bit
+		        
+					bytesPerElement = 2;
+			        
+					alg = (T) G.UINT16;
+		            
+					byteTransformer = new Procedure3<Boolean, byte[], U>() {
+						@Override
+						public void call(Boolean evenPixel, byte[] data, U type) {
+							
+							int v = decodeShort(data, 0, littleEndian) & 0xffff;
+							
+							((UnsignedInt16Member) type).setV(v);
 						}
 					};
 		            
@@ -335,7 +309,6 @@ public class MrcReader {
 					byteTransformer = new Procedure3<Boolean, byte[], U>() {
 						@Override
 						public void call(Boolean evenPixel, byte[] data, U type) {
-							
 							int r = data[0] & 0xff;
 							int g = data[1] & 0xff;
 							int b = data[2] & 0xff;
@@ -348,10 +321,37 @@ public class MrcReader {
 		            
 		        	break;
 		            
-		        default:
-		        
-		        	System.out.println("Unidentified MRC pixel type: "+dataType);
-					
+				case 101: // Unsigned4Bit:
+			            
+					bytesPerElement = 0.5;
+			        
+					alg = (T) G.UINT4;
+						
+					byteTransformer = new Procedure3<Boolean, byte[], U>() {
+						@Override
+						public void call(Boolean evenPixel, byte[] data, U type) {
+								
+							int v;
+								
+							if (evenPixel) {
+									
+								v = data[0] & 0x0f;
+							}
+							else {
+									
+								v = (data[0] & 0xf0) >> 4;
+							}
+								
+							((SignedInt4Member) type).setV(v);
+						}
+					};
+						
+					break;
+	
+				default:
+			        
+			       	System.out.println("Unidentified MRC pixel type: "+dataType);
+						
 					return bundle;
 			}
 	
@@ -518,12 +518,6 @@ public class MrcReader {
 		
 		switch (dataType) {
         
-			case 101: // Unsigned4Bit
-	        
-				bundle.uint4s.add((DimensionedDataSource<UnsignedInt4Member>) data);
-	            
-				break;
-	            
 			case 0: // bytes - signed or unsigned
 				
 				if (signedBytes)
@@ -542,27 +536,27 @@ public class MrcReader {
 	            
 				break;
 	            
-			case 6: // Unsigned16Bit
-	        
-				bundle.uint16s.add((DimensionedDataSource<UnsignedInt16Member>) data);
-	            
-				break;
-	            
-			case 3: // Gaussian16Bit
-	        
-				bundle.gint16s.add((DimensionedDataSource<GaussianInt16Member>) data);
-	            
-				break;
-	            
 			case 2: // Float32Bit
 	        
 				bundle.flts.add((DimensionedDataSource<Float32Member>) data);
 	            
 				break;
 	            
+			case 3: // Gaussian16Bit
+		        
+				bundle.gint16s.add((DimensionedDataSource<GaussianInt16Member>) data);
+	            
+				break;
+	            
 			case 4: // ComplexFloat32Bit:
 	        
 				bundle.cflts.add((DimensionedDataSource<ComplexFloat32Member>) data);
+	            
+				break;
+	            
+			case 6: // Unsigned16Bit
+		        
+				bundle.uint16s.add((DimensionedDataSource<UnsignedInt16Member>) data);
 	            
 				break;
 	            
@@ -577,6 +571,12 @@ public class MrcReader {
 				bundle.rgbs.add((DimensionedDataSource<RgbMember>) data);
 	            
 	        	break;
+	            
+			case 101: // Unsigned4Bit
+		        
+				bundle.uint4s.add((DimensionedDataSource<UnsignedInt4Member>) data);
+	            
+				break;
 	            
 	        default:
 	        
