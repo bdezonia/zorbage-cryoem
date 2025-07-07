@@ -101,24 +101,20 @@ public class MrcReader {
 	{
 		DataBundle bundle = new DataBundle();
 	    
-		DimensionedDataSource<U> data;
+		DimensionedDataSource<U> data = null;
 		
-		int dataType;
+		int dataType = -1;
 		
-		boolean signedBytes;
+		boolean signedBytes = false;
 		
-		boolean swapOriginSign;
+		boolean swapOriginSign = false;
 		
 		float originX = 0;
-		
 		float originY = 0;
-		
 		float originZ = 0;
 		
 		float cellSpacingX = 1;
-		
 		float cellSpacingY = 1;
-		
 		float cellSpacingZ = 1;
 		
 		try {
@@ -142,7 +138,9 @@ public class MrcReader {
 			
 			Procedure3<Boolean, byte[], U> byteTransformer = null;
 	
-			boolean imodHeader = decodeInt(header, 152, littleEndian) == 1146047817; 
+			boolean imodHeader =
+					
+					decodeInt(header, 152, littleEndian) == 1146047817; 
 
 			signedBytes = imodHeader && (header[156] & 1) == 1;
 					
@@ -150,7 +148,7 @@ public class MrcReader {
 			
 			dataType = decodeInt(header, 12, littleEndian);
 	
-			double bytesPerElement;
+			double bytesPerElement = 0;
 			
 			switch (dataType) {
 		        
@@ -375,37 +373,27 @@ public class MrcReader {
 			//   flags might pertain to).
 			
 			long cols = decodeInt(header, 0, littleEndian);
-			
 			long rows = decodeInt(header, 4, littleEndian);
-			
 			long sections = decodeInt(header, 8, littleEndian);
 			
 			int mx = decodeInt(header, 28, littleEndian);
-			
 			int my = decodeInt(header, 32, littleEndian);
-			
 			int mz = decodeInt(header, 36, littleEndian);
 			
 			float xlen = decodeFloat(header, 40, littleEndian);
-			
 			float ylen = decodeFloat(header, 44, littleEndian);
-			
 			float zlen = decodeFloat(header, 48, littleEndian);
 			
 			// newer files store origin here:
 			
 			float aOriginX = decodeFloat(header, 196, littleEndian);
-			
 			float aOriginY = decodeFloat(header, 200, littleEndian);
-			
 			float aOriginZ = decodeFloat(header, 204, littleEndian);
 			
 			// older files store origin here:
 			
 			float bOriginX = decodeFloat(header, 212, littleEndian);
-			
 			float bOriginY = decodeFloat(header, 216, littleEndian);
-			
 			float bOriginZ = decodeFloat(header, 208, littleEndian);
 			
 			// now choose between the two origin conventions
@@ -420,6 +408,7 @@ public class MrcReader {
 				originZ = aOriginZ;
 			}
 			else {
+
 				originX = bOriginX;
 				originY = bOriginY;
 				originZ = bOriginZ;
@@ -437,6 +426,10 @@ public class MrcReader {
 			cellSpacingX = xlen / mx;
 			cellSpacingY = ylen / my;
 			cellSpacingZ = zlen / mz;
+			
+			if (cellSpacingX == 0) cellSpacingX = 1;
+			if (cellSpacingY == 0) cellSpacingY = 1;
+			if (cellSpacingZ == 0) cellSpacingZ = 1;
 			
 			long[] dims = new long[] {cols, rows, sections};
 			
@@ -537,7 +530,7 @@ public class MrcReader {
 	
 					bundle.int8s.add((DimensionedDataSource<SignedInt8Member>) data);
 	            
-				else
+				else  // unsigned
 			        
 					bundle.uint8s.add((DimensionedDataSource<UnsignedInt8Member>) data);
 					
@@ -615,9 +608,10 @@ public class MrcReader {
 	
 		short decodeShort(byte[] buffer, int offset, boolean littleEndian)
 	{
-		// NOTE: we do not do any endian switching for less than 32 bits.
+		// TODO: we do not do any endian switching for less than 32 bits.
 		// That has been standard practice in my other translators. If
-		// that is wrong here I will need to add endian flipping code.
+		// that is wrong here I will need to add endian flipping code
+		// in a fashion simlar to float and int routines below.
 		
 		return (short) (
 							((buffer[offset+0] & 0xff) << 8) |
