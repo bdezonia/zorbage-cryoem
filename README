@@ -1,0 +1,29 @@
+zorbage-nmr
+
+This repository contains code for loading various cryo EM file formats into zorbage
+structures for further processing.
+
+Currently supported file types include:
+
+  - MRC files
+
+Future development directions will be to add more supported formats. 
+
+To learn more about Zorbage please visit https://github.com/bdezonia/zorbage
+
+How to include zorbage-cryoem in your Maven project
+
+  Add the following dependency to your project's pom.xml:
+
+  <dependency>
+    <groupId>io.github.bdezonia</groupId>
+    <artifactId>zorbage-cryoem</artifactId>
+    <version>0.0.1</version>
+  </dependency>
+
+How to include zorbage-cryoem in a different build system
+
+  See https://search.maven.org/artifact/io.github.bdezonia/zorbage-cryoem/0.0.1/jar
+  for instructions on how to reference zorbage-cryoem in build systems such as
+  Gradle or others.
+
