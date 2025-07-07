@@ -28,12 +28,14 @@ import java.io.DataInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URISyntaxException;
 
 import nom.bdezonia.zorbage.algebra.Algebra;
 import nom.bdezonia.zorbage.algebra.Allocatable;
 import nom.bdezonia.zorbage.algebra.G;
+import nom.bdezonia.zorbage.coordinates.LinearNdCoordinateSpace;
 import nom.bdezonia.zorbage.data.DimensionedDataSource;
 import nom.bdezonia.zorbage.data.DimensionedStorage;
 import nom.bdezonia.zorbage.misc.DataBundle;
@@ -104,6 +106,18 @@ public class MrcReader {
 		int dataType;
 		
 		boolean signedBytes;
+		
+		float originX = 0;
+		
+		float originY = 0;
+		
+		float originZ = 0;
+		
+		float cellSpacingX = 1;
+		
+		float cellSpacingY = 1;
+		
+		float cellSpacingZ = 1;
 		
 		try {
 			
@@ -349,15 +363,81 @@ public class MrcReader {
 	
 			byte[] byteBuffer = new byte[nb];
 	
-			// TODO: there is some header data that specifies the order of the
-			//   three coord axes in the data. I'm not using that yet.
+			// TODO: there is some header data (header[64-76]) that
+			//   specifies some order of the three coord axes in the
+			//   data. I'm not using that yet as it seems to violate
+			//   other statements about the coordinate system. I need
+			//   access to test data that might show a problem with
+			//   the ordering of axes or at least with the calculations
+			//   of the origins and cell spacings (which is all those
+			//   flags might pertain to).
 			
 			long cols = decodeInt(header, 0, littleEndian);
 			
 			long rows = decodeInt(header, 4, littleEndian);
 			
 			long sections = decodeInt(header, 8, littleEndian);
-	
+			
+			int mx = decodeInt(header, 28, littleEndian);
+			
+			int my = decodeInt(header, 32, littleEndian);
+			
+			int mz = decodeInt(header, 36, littleEndian);
+			
+			float xlen = decodeFloat(header, 40, littleEndian);
+			
+			float ylen = decodeFloat(header, 44, littleEndian);
+			
+			float zlen = decodeFloat(header, 48, littleEndian);
+			
+			// newer files store origin here:
+			
+			float aOriginX = decodeFloat(header, 196, littleEndian);
+			
+			float aOriginY = decodeFloat(header, 200, littleEndian);
+			
+			float aOriginZ = decodeFloat(header, 204, littleEndian);
+			
+			// older files store origin here:
+			
+			float bOriginX = decodeFloat(header, 212, littleEndian);
+			
+			float bOriginY = decodeFloat(header, 216, littleEndian);
+			
+			float bOriginZ = decodeFloat(header, 208, littleEndian);
+			
+			// now choose between the two origin conventions
+			
+			if (header[208] == 'M' &&
+				header[209] == 'A' &&
+				header[210] == 'P' &&
+				header[211] == ' ' )
+			{
+				originX = aOriginX;
+				originY = aOriginY;
+				originZ = aOriginZ;
+			}
+			else {
+				originX = bOriginX;
+				originY = bOriginY;
+				originZ = bOriginZ;
+			}
+			
+			// TODO: bit flags at header[156] has one option where it
+			//   says origin is stored sign reversed. I am not sure
+			//   how that works and am not going to support it for now.
+			//   It could be that at this point we can scale the origins
+			//   by -1.0 if needed. We need a data file that we can prove
+			//   does not yet work until we put in negative origin code.
+			//   That option did not appear until IMOD 4.11 (in about
+			//   Dec 2020).
+			
+			// and get cell spacing
+			
+			cellSpacingX = xlen / mx;
+			cellSpacingY = ylen / my;
+			cellSpacingZ = zlen / mz;
+			
 			long[] dims = new long[] {cols, rows, sections};
 			
 			data = DimensionedStorage.allocate(type, dims);
@@ -412,11 +492,36 @@ public class MrcReader {
 			
 			return bundle;
 		}
+
+		BigDecimal[] spacings = new BigDecimal[3];
+		BigDecimal[] origins = new BigDecimal[3];
 		
-		// TODO: look in the headers and build any relevant metadata.
-		//   For instance the origin and scales are specified in the
-		//   header. More data is in the extened header. Attach the
-		//   metadta to the dataset here.
+		origins[0] = BigDecimal.valueOf(originX);
+		origins[1] = BigDecimal.valueOf(originY);
+		origins[2] = BigDecimal.valueOf(originZ);
+		
+		spacings[0] = BigDecimal.valueOf(cellSpacingX);
+		spacings[1] = BigDecimal.valueOf(cellSpacingY);
+		spacings[2] = BigDecimal.valueOf(cellSpacingZ);
+		
+		LinearNdCoordinateSpace coordSpace =
+				
+				new LinearNdCoordinateSpace(spacings, origins);
+		
+		data.setCoordinateSpace(coordSpace);
+				
+		data.setAxisType(0, "X");
+		data.setAxisType(1, "Y");
+		data.setAxisType(2, "Z");
+		
+		data.setName("MRC format file");
+		
+		data.setSource(fileURI.toString());
+		
+		// TODO: look in the headers and build any other relevant metadata.
+		//   For instance there are all kinds of settings in the header
+		//   and the extended header. Attach the metadata to the dataset
+		//   here.
 		
 		switch (dataType) {
         
