@@ -356,15 +356,15 @@ public class MrcReader {
 			
 			long rows = decodeInt(header, 4, littleEndian);
 			
-			long planes = decodeInt(header, 8, littleEndian);
+			long sections = decodeInt(header, 8, littleEndian);
 	
-			long[] dims = new long[] {cols, rows, planes};
+			long[] dims = new long[] {cols, rows, sections};
 			
 			data = DimensionedStorage.allocate(type, dims);
 	
 			IntegerIndex idx = new IntegerIndex(3);
 		
-			for (long z = 0; z < planes; z++) {
+			for (long z = 0; z < sections; z++) {
 				
 				idx.set(2, z);
 				
@@ -415,7 +415,8 @@ public class MrcReader {
 		
 		// TODO: look in the headers and build any relevant metadata.
 		//   For instance the origin and scales are specified in the
-		//   header.
+		//   header. More data is in the extened header. Attach the
+		//   metadta to the dataset here.
 		
 		switch (dataType) {
         
