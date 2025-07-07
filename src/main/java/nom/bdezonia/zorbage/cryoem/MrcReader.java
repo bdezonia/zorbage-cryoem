@@ -107,6 +107,8 @@ public class MrcReader {
 		
 		boolean signedBytes;
 		
+		boolean swapOriginSign;
+		
 		float originX = 0;
 		
 		float originY = 0;
@@ -140,12 +142,12 @@ public class MrcReader {
 			
 			Procedure3<Boolean, byte[], U> byteTransformer = null;
 	
-			signedBytes =
-				
-					decodeInt(header, 152, littleEndian) == 1146047817 &&
+			boolean imodHeader = decodeInt(header, 152, littleEndian) == 1146047817; 
+
+			signedBytes = imodHeader && (header[156] & 1) == 1;
 					
-					(header[156] & 1) == 1;
-					
+			swapOriginSign = imodHeader && (header[156] & 4) == 4;
+			
 			dataType = decodeInt(header, 12, littleEndian);
 	
 			double bytesPerElement;
@@ -422,15 +424,13 @@ public class MrcReader {
 				originY = bOriginY;
 				originZ = bOriginZ;
 			}
+
+			if (swapOriginSign) {
 			
-			// TODO: bit flags at header[156] has one option where it
-			//   says origin is stored sign reversed. I am not sure
-			//   how that works and am not going to support it for now.
-			//   It could be that at this point we can scale the origins
-			//   by -1.0 if needed. We need a data file that we can prove
-			//   does not yet work until we put in negative origin code.
-			//   That option did not appear until IMOD 4.11 (in about
-			//   Dec 2020).
+				originX = -originX;
+				originY = -originY;
+				originZ = -originZ;
+			}
 			
 			// and get cell spacing
 			
