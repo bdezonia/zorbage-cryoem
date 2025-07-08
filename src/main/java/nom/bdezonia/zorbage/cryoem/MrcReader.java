@@ -53,7 +53,7 @@ import nom.bdezonia.zorbage.type.integer.int8.UnsignedInt8Member;
 import nom.bdezonia.zorbage.type.real.float16.Float16Member;
 import nom.bdezonia.zorbage.type.real.float32.Float32Member;
 
-// TODO: y coords seem to be reversed in direction
+// TODO: y coords seem to be flipped when viewing in zorbage-viewer
 
 /**
  * @author Barry DeZonia
@@ -114,7 +114,9 @@ public class MrcReader {
 		int[] axisOrder = new int[3];
 		
 		long[] dims = new long[3];
+		
 		BigDecimal[] origins = new BigDecimal[3];
+		
 		BigDecimal[] spacings = new BigDecimal[3];
 		
 		try {
