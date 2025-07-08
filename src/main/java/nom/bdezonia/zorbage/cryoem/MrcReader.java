@@ -234,11 +234,11 @@ public class MrcReader {
 						@Override
 						public void call(Boolean evenPixel, byte[] data, U type) {
 							
-							int v1 = decodeShort(data, 0, littleEndian) & 0xffff;
+							short v1 = decodeShort(data, 0, littleEndian);
+							short v2 = decodeShort(data, 2, littleEndian);
 							
-							int v2 = decodeShort(data, 2, littleEndian) & 0xffff;
-							
-							((GaussianInt16Member) type).setFromInts(v1, v2);
+							((GaussianInt16Member) type).setR(v1);
+							((GaussianInt16Member) type).setI(v2);
 						}
 					};
 		            
@@ -608,15 +608,20 @@ public class MrcReader {
 	
 		short decodeShort(byte[] buffer, int offset, boolean littleEndian)
 	{
-		// TODO: we do not do any endian switching for less than 32 bits.
-		// That has been standard practice in my other translators. If
-		// that is wrong here I will need to add endian flipping code
-		// in a fashion simlar to float and int routines below.
-		
-		return (short) (
-							((buffer[offset+0] & 0xff) << 8) |
-							((buffer[offset+1] & 0xff) << 0)
-						);
+		if (littleEndian) {
+
+			return (short) (
+					((buffer[offset+0] & 0xff) << 8) |
+					((buffer[offset+1] & 0xff) << 0)
+				);
+		}
+		else { // bigEndian
+
+			return (short) (
+					((buffer[offset+1] & 0xff) << 8) |
+					((buffer[offset+0] & 0xff) << 0)
+				);
+		}
 	}
 	
 	private static
