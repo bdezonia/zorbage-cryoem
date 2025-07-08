@@ -53,6 +53,8 @@ import nom.bdezonia.zorbage.type.integer.int8.UnsignedInt8Member;
 import nom.bdezonia.zorbage.type.real.float16.Float16Member;
 import nom.bdezonia.zorbage.type.real.float32.Float32Member;
 
+// TODO: y coords seem to be reversed in direction
+
 /**
  * @author Barry DeZonia
  */
@@ -109,13 +111,11 @@ public class MrcReader {
 		
 		boolean swapOriginSign = false;
 		
-		float originX = 0;
-		float originY = 0;
-		float originZ = 0;
+		int[] axisOrder = new int[3];
 		
-		float cellSpacingX = 1;
-		float cellSpacingY = 1;
-		float cellSpacingZ = 1;
+		long[] dims = new long[3];
+		BigDecimal[] origins = new BigDecimal[3];
+		BigDecimal[] spacings = new BigDecimal[3];
 		
 		try {
 			
@@ -138,13 +138,23 @@ public class MrcReader {
 			
 			Procedure3<Boolean, byte[], U> byteTransformer = null;
 	
-			boolean imodHeader =
+			float originX = 0;
+			float originY = 0;
+			float originZ = 0;
+			
+			float cellSpacingX = 1;
+			float cellSpacingY = 1;
+			float cellSpacingZ = 1;
+			
+			boolean isImodHeader =
 					
-					decodeInt(header, 152, littleEndian) == 1146047817; 
+					decodeInt(header, 152, littleEndian) == 1146047817;
+			
+			int flags = decodeInt(header, 156, littleEndian);
 
-			signedBytes = imodHeader && (header[156] & 1) == 1;
+			signedBytes = isImodHeader && (flags & 1) == 1;
 					
-			swapOriginSign = imodHeader && (header[156] & 4) == 4;
+			swapOriginSign = isImodHeader && (flags & 4) == 4;
 			
 			dataType = decodeInt(header, 12, littleEndian);
 	
@@ -362,15 +372,14 @@ public class MrcReader {
 			if (nb < 1) nb = 1;  // 4 bit case
 	
 			byte[] byteBuffer = new byte[nb];
-	
-			// TODO: there is some header data (header[64-76]) that
-			//   specifies some order of the three coord axes in the
-			//   data. I'm not using that yet as it seems to violate
-			//   other statements about the coordinate system. I need
-			//   access to test data that might show a problem with
-			//   the ordering of axes or at least with the calculations
-			//   of the origins and cell spacings (which is all those
-			//   flags might pertain to).
+
+			axisOrder[0] = decodeInt(header, 64, littleEndian);
+			axisOrder[1] = decodeInt(header, 68, littleEndian);
+			axisOrder[2] = decodeInt(header, 72, littleEndian);
+
+			if (axisOrder[0] < 1 || axisOrder[0] > 3) axisOrder[0] = 1;
+			if (axisOrder[1] < 1 || axisOrder[1] > 3) axisOrder[1] = 2;
+			if (axisOrder[2] < 1 || axisOrder[2] > 3) axisOrder[2] = 3;
 			
 			long cols = decodeInt(header, 0, littleEndian);
 			long rows = decodeInt(header, 4, littleEndian);
@@ -431,7 +440,59 @@ public class MrcReader {
 			if (cellSpacingY == 0) cellSpacingY = 1;
 			if (cellSpacingZ == 0) cellSpacingZ = 1;
 			
-			long[] dims = new long[] {cols, rows, sections};
+			if (axisOrder[0] == 1) {
+				dims[0] = cols;
+				origins[0] = BigDecimal.valueOf(originX);
+				spacings[0] = BigDecimal.valueOf(cellSpacingX);
+			}
+			
+			if (axisOrder[0] == 2) {
+				dims[1] = cols;
+				origins[1] = BigDecimal.valueOf(originX);
+				spacings[1] = BigDecimal.valueOf(cellSpacingX);
+			}
+			
+			if (axisOrder[0] == 3) {
+				dims[2] = cols;
+				origins[2] = BigDecimal.valueOf(originX);
+				spacings[2] = BigDecimal.valueOf(cellSpacingX);
+			}
+			
+			if (axisOrder[1] == 1) {
+				dims[0] = rows;
+				origins[0] = BigDecimal.valueOf(originY);
+				spacings[0] = BigDecimal.valueOf(cellSpacingY);
+			}
+
+			if (axisOrder[1] == 2) {
+				dims[1] = rows;
+				origins[1] = BigDecimal.valueOf(originY);
+				spacings[1] = BigDecimal.valueOf(cellSpacingY);
+			}
+			
+			if (axisOrder[1] == 3) {
+				dims[2] = rows;
+				origins[2] = BigDecimal.valueOf(originY);
+				spacings[2] = BigDecimal.valueOf(cellSpacingY);
+			}
+			
+			if (axisOrder[2] == 1) {
+				dims[0] = sections;
+				origins[0] = BigDecimal.valueOf(originZ);
+				spacings[0] = BigDecimal.valueOf(cellSpacingZ);
+			}
+			
+			if (axisOrder[2] == 2) {
+				dims[1] = sections;
+				origins[1] = BigDecimal.valueOf(originZ);
+				spacings[1] = BigDecimal.valueOf(cellSpacingZ);
+			}
+			
+			if (axisOrder[2] == 3) {
+				dims[2] = sections;
+				origins[2] = BigDecimal.valueOf(originZ);
+				spacings[2] = BigDecimal.valueOf(cellSpacingZ);
+			}
 			
 			data = DimensionedStorage.allocate(type, dims);
 	
@@ -439,15 +500,15 @@ public class MrcReader {
 		
 			for (long z = 0; z < sections; z++) {
 				
-				idx.set(2, z);
+				idx.set(axisOrder[2]-1, z);
 				
 				for (long y = 0; y < rows; y++) {
 					
-					idx.set(1, y);
+					idx.set(axisOrder[1]-1, y);
 					
 					for (long x = 0; x < cols; x++) {
 						
-						idx.set(0, x);
+						idx.set(axisOrder[0]-1, x);
 						
 						Boolean evenPixel = (x & 1) == 0;
 						
@@ -485,17 +546,6 @@ public class MrcReader {
 			
 			return bundle;
 		}
-
-		BigDecimal[] spacings = new BigDecimal[3];
-		BigDecimal[] origins = new BigDecimal[3];
-		
-		origins[0] = BigDecimal.valueOf(originX);
-		origins[1] = BigDecimal.valueOf(originY);
-		origins[2] = BigDecimal.valueOf(originZ);
-		
-		spacings[0] = BigDecimal.valueOf(cellSpacingX);
-		spacings[1] = BigDecimal.valueOf(cellSpacingY);
-		spacings[2] = BigDecimal.valueOf(cellSpacingZ);
 		
 		LinearNdCoordinateSpace coordSpace =
 				
@@ -503,9 +553,9 @@ public class MrcReader {
 		
 		data.setCoordinateSpace(coordSpace);
 				
-		data.setAxisType(0, "X");
-		data.setAxisType(1, "Y");
-		data.setAxisType(2, "Z");
+		data.setAxisType(axisOrder[0]-1, "X");
+		data.setAxisType(axisOrder[1]-1, "Y");
+		data.setAxisType(axisOrder[2]-1, "Z");
 		
 		data.setName("MRC format file");
 		
