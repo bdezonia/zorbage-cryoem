@@ -53,8 +53,6 @@ import nom.bdezonia.zorbage.type.integer.int8.UnsignedInt8Member;
 import nom.bdezonia.zorbage.type.real.float16.Float16Member;
 import nom.bdezonia.zorbage.type.real.float32.Float32Member;
 
-// TODO: y coords seem to be flipped when viewing in zorbage-viewer
-
 /**
  * @author Barry DeZonia
  */
@@ -403,9 +401,9 @@ public class MrcReader {
 			
 			// older files store origin here:
 			
+			float bOriginZ = decodeFloat(header, 208, littleEndian);
 			float bOriginX = decodeFloat(header, 212, littleEndian);
 			float bOriginY = decodeFloat(header, 216, littleEndian);
-			float bOriginZ = decodeFloat(header, 208, littleEndian);
 			
 			// now choose between the two origin conventions
 			
