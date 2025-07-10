@@ -552,11 +552,19 @@ public class MrcReader {
 				new LinearNdCoordinateSpace(spacings, origins);
 		
 		data.setCoordinateSpace(coordSpace);
+		
+		data.setValueType("intensity");
+		data.setValueUnit("");
 				
 		data.setAxisType(axisOrder[0]-1, "X");
-		data.setAxisType(axisOrder[1]-1, "Y");
-		data.setAxisType(axisOrder[2]-1, "Z");
+		data.setAxisUnit(axisOrder[0]-1, "dist");
 		
+		data.setAxisType(axisOrder[1]-1, "Y");
+		data.setAxisUnit(axisOrder[1]-1, "dist");
+
+		data.setAxisType(axisOrder[2]-1, "Z");
+		data.setAxisUnit(axisOrder[2]-1, "dist");
+
 		data.setName("MRC format file");
 		
 		data.setSource(fileURI.toString());
