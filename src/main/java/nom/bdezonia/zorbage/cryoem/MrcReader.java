@@ -102,6 +102,13 @@ public class MrcReader {
 		DataBundle bundle = new DataBundle();
 	    
 		DimensionedDataSource<U> data = null;
+
+		byte[] header = null;
+		
+		@SuppressWarnings("unused")
+		byte[] extendedHeader = null;
+		
+		final boolean littleEndian;
 		
 		int dataType = -1;
 		
@@ -125,14 +132,13 @@ public class MrcReader {
 			
 			DataInputStream dis = new DataInputStream(bf1);
 	
-			byte[] header = dis.readNBytes(1024);
+			header = dis.readNBytes(1024);
 	
-			boolean littleEndian = (header[212] == 68 && header[212] == 65);
+			littleEndian = (header[212] == 68 && header[212] == 65);
 			
 			int extendedSize = decodeInt(header, 92, littleEndian);
 			
-			@SuppressWarnings("unused")
-			byte[] extendedHeader = dis.readNBytes(extendedSize);
+			extendedHeader = dis.readNBytes(extendedSize);
 			
 			Algebra<T,U> alg = null;
 			
@@ -392,7 +398,7 @@ public class MrcReader {
 			float xlen = decodeFloat(header, 40, littleEndian);
 			float ylen = decodeFloat(header, 44, littleEndian);
 			float zlen = decodeFloat(header, 48, littleEndian);
-			
+            
 			// newer files store origin here:
 			
 			float aOriginX = decodeFloat(header, 196, littleEndian);
@@ -573,6 +579,21 @@ public class MrcReader {
 		//   For instance there are all kinds of settings in the header
 		//   and the extended header. Attach the metadata to the dataset
 		//   here.
+			
+		int numLabels = decodeInt(header, 220, littleEndian);
+        
+		if (numLabels < 0) numLabels = 0;
+		if (numLabels > 10) numLabels = 10;
+        
+		for (int l = 0; l < numLabels; l++) {
+    
+			StringBuilder builder = new StringBuilder();
+			for (int b = 0; b < 80; b++) {
+				builder.append((char) header[224 + 80*l + b]);
+			}
+		
+			data.metadata().putString("Label "+l, builder.toString());
+		}
 		
 		switch (dataType) {
         
