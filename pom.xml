@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.github.bdezonia</groupId>
   <artifactId>zorbage-cryoem</artifactId>
-  <version>0.0.1</version>
+  <version>0.0.2-SNAPSHOT</version>
   <name>zorbage-cryoem</name>
   <description>zorbage-cryoem: code for populating cryo em file data into zorbage structures for further processing</description>
   <url>https://github.com/bdezonia/zorbage-cryoem</url>
@@ -61,7 +61,7 @@
     <dependency>
       <groupId>io.github.bdezonia</groupId>
       <artifactId>zorbage</artifactId>
-      <version>2.0.5</version>
+      <version>2.0.6-SNAPSHOT</version>
     </dependency>
   
   </dependencies>
